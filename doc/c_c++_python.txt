@@ -1,0 +1,38 @@
+https://www.rddoc.com/doc/Python/3.6.0/zh/extending/embedding/#extending-with-embedding
+
+static int numargs=0;
+
+/* Return the number of arguments of the application command line */
+static PyObject*
+emb_numargs(PyObject *self, PyObject *args)
+{
+    if(!PyArg_ParseTuple(args, ":numargs"))
+        return NULL;
+    return PyLong_FromLong(numargs);
+}
+
+static PyMethodDef EmbMethods[] = {
+    {"numargs", emb_numargs, METH_VARARGS,
+     "Return the number of arguments received by the process."},
+    {NULL, NULL, 0, NULL}
+};
+
+static PyModuleDef EmbModule = {
+    PyModuleDef_HEAD_INIT, "emb", NULL, -1, EmbMethods,
+    NULL, NULL, NULL, NULL
+};
+
+static PyObject*
+PyInit_emb(void)
+{
+    return PyModule_Create(&EmbModule);
+}
+将上述代码插入到 main() 函数上方。此外，在调用 Py_Initialize() 之前插入以下两个语句:
+
+numargs = argc;
+PyImport_AppendInittab("emb", &PyInit_emb);
+这两行初始化 numargs 变量，并使嵌入式Python解释器可以访问 emb.numargs() 函数。有了这些扩展，Python脚本可以做的事情
+
+import emb
+print("Number of arguments", emb.numargs())
+在实际应用中，这些方法会将应用程序的API暴露给Python。

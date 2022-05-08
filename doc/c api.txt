@@ -1,0 +1,148 @@
+PyObject* PyImport_ImportModule(const char *name)
+Return value: New reference.
+	这是 PyImport_ImportModuleEx() 的简化接口，将 globals 和 locals 参数设置为 NULL 和 level 设置为0.当 name 参数包含一个点（当它指定包的子模块时），fromlist 参数设置为列表 ['*']，以便返回值是命名的模块，而不是包含它的顶层包，否则就是这种情况。 （不幸的是，当 name 实际上指定了子包而不是子模块时，这会产生额外的副作用：加载包的 __all__ 变量中指定的子模块。）返回对引入的模块的新引用，或者在失败时设置了异常的 NULL 。模块的失败导入不会将模块留在 sys.modules 中。
+	此函数始终使用绝对导入。
+
+
+PyObject* PyImport_ImportModuleNoBlock(const char *name)
+	此函数是 PyImport_ImportModule() 的已弃用别名。
+	在 3.3 版更改: 当导入锁由另一个线程持有时，此函数用于立即失败。在Python 3.3中，锁定方案切换到每个模块的锁大多数目的，所以这个功能的特殊行为不再需要。
+
+
+PyObject* PyImport_ImportModuleEx(const char *name, PyObject *globals, PyObject *locals, PyObject *fromlist)
+Return value: New reference.
+	导入模块。这最好通过参考内置的Python函数 __import__() 来描述。
+	返回值是对引入的模块或顶级包的新引用，或者在失败时设置了异常的 NULL。像 __import__() 一样，当请求包的子模块时的返回值通常是顶级包，除非给出非空 fromlist。
+	失败的导入删除不完整的模块对象，像 PyImport_ImportModule()。
+
+
+PyObject* PyImport_ImportModuleLevelObject(PyObject *name, PyObject *globals, PyObject *locals, PyObject *fromlist, int level)
+	导入模块。这最好通过参考内置的Python函数 __import__() 来描述，因为标准 __import__() 函数直接调用此函数。
+	返回值是对引入的模块或顶级包的新引用，或者在失败时设置了异常的 NULL。像 __import__() 一样，当请求包的子模块时的返回值通常是顶级包，除非给出非空 fromlist。
+	3.3 新版功能.
+
+
+PyObject* PyImport_ImportModuleLevel(const char *name, PyObject *globals, PyObject *locals, PyObject *fromlist, int level)
+Return value: New reference.
+	与 PyImport_ImportModuleLevelObject() 类似，但名称是UTF-8编码的字符串，而不是Unicode对象。
+	在 3.3 版更改: 不再接受 level 的负值。
+
+
+PyObject* PyImport_Import(PyObject *name)
+Return value: New reference.
+	这是一个更高级别的接口，调用当前的“导入钩子函数”（显式 level 为0，表示绝对导入）。它从当前全局的 __builtins__ 调用 __import__() 函数。这意味着导入是使用当前环境中安装的任何导入钩子完成的。
+	此函数始终使用绝对导入。
+
+
+PyObject* PyImport_ReloadModule(PyObject *m)
+Return value: New reference.
+	重新加载模块。返回对重新加载的模块的新引用，或者在失败时设置了异常的 NULL （在这种情况下模块仍然存在）。
+
+
+PyObject* PyImport_AddModuleObject(PyObject *name)
+	返回与模块名称对应的模块对象。 name 参数可以是 package.module 的形式。首先检查模块字典，如果有，如果没有，创建一个新的，并将其插入模块字典。返回失败时设置了异常的 NULL。
+	注解:
+		此功能不加载或导入模块；如果模块尚未加载，您将获得一个空的模块对象。使用 PyImport_ImportModule() 或其变体之一导入模块。如果尚未存在，则不会创建由 name 的虚线名称表示的包结构。
+	3.3 新版功能.
+
+
+PyObject* PyImport_AddModule(const char *name)
+Return value: Borrowed reference.
+	与 PyImport_AddModuleObject() 类似，但名称是UTF-8编码的字符串，而不是Unicode对象。
+
+
+PyObject* PyImport_ExecCodeModule(const char *name, PyObject *co)
+Return value: New reference.
+	给定一个模块名（可能是 package.module 的形式）和从Python字节码文件读取或从内置函数 compile() 获取的代码对象，加载模块。返回对模块对象的新引用，如果发生错误，则返回具有异常集合的 NULL。在错误情况下从 sys.modules 移除 name，即使在进入 PyImport_ExecCodeModule() 时 name 已经在 sys.modules 中。在 sys.modules 中保留未完全初始化的模块是危险的，因为这些模块的导入无法知道模块对象是未知的（并且可能相对于模块作者的意图而言已损坏）状态。
+	如果未设置模块的 __spec__ 和 __loader__，将使用适当的值设置。规范的加载器将被设置为模块的 __loader__ （如果设置），否则设置为 SourceFileLoader 的实例。
+	模块的 __file__ 属性将被设置为代码对象的 co_filename。如果适用，__cached__ 也将设置。
+	如果模块已经导入，此函数将重新加载模块。有关重新加载模块的预期方法，请参阅 PyImport_ReloadModule()。
+	如果 name 指向表单 package.module 的点名称，则仍然不会创建尚未创建的任何包结构。
+	参见 PyImport_ExecCodeModuleEx() 和 PyImport_ExecCodeModuleWithPathnames()。
+
+
+PyObject* PyImport_ExecCodeModuleEx(const char *name, PyObject *co, const char *pathname)
+Return value: New reference.
+	像 PyImport_ExecCodeModule()，但是如果它是非 NULL，模块对象的 __file__ 属性设置为 pathname。
+	参见 PyImport_ExecCodeModuleWithPathnames()。
+
+
+PyObject* PyImport_ExecCodeModuleObject(PyObject *name, PyObject *co, PyObject *pathname, PyObject *cpathname)
+	像 PyImport_ExecCodeModuleEx()，但是如果它是非 NULL，模块对象的 __cached__ 属性设置为 cpathname。在三个功能中，这是首选使用。
+	3.3 新版功能.
+
+
+PyObject* PyImport_ExecCodeModuleWithPathnames(const char *name, PyObject *co, const char *pathname, const char *cpathname)
+	像 PyImport_ExecCodeModuleObject()，但 name，pathname 和 cpathname 是UTF-8编码的字符串。如果前者被设置为 NULL，则还尝试找出 pathname 的值应该来自 cpathname。
+	3.2 新版功能.
+	在 3.3 版更改: 如果只提供字节码路径，则使用 imp.source_from_cache() 计算源路径。
+
+
+long PyImport_GetMagicNumber()
+	返回Python字节码文件（a.k.a. .pyc 文件）的幻数。幻数应该存在于字节码文件的前四个字节中，以小端字节顺序。返回 -1 错误。
+	在 3.3 版更改: 故障时 -1 的返回值。
+
+
+const char * PyImport_GetMagicTag()
+	返回 PEP 3147 格式Python字节码文件名的魔术变量字符串。请记住，sys.implementation.cache_tag 的值是权威的，应该使用它而不是这个函数。
+	3.2 新版功能.
+
+
+PyObject* PyImport_GetModuleDict()
+Return value: Borrowed reference.
+	返回用于模块管理的字典（a.k.a. sys.modules）。注意，这是一个每解释器变量。
+
+
+PyObject* PyImport_GetImporter(PyObject *path)
+	返回 sys.path/pkg.__path__ 项目 path 的finder对象，可能通过从 sys.path_importer_cache dict获取它。如果它还没有被缓存，遍历 sys.path_hooks 直到找到可以处理路径项的钩子。如果没有钩子，返回 None；这告诉我们的调用者 path based finder 找不到这个路径项的finder。在 sys.path_importer_cache 中缓存结果。返回对finder对象的新引用。
+
+
+void _PyImport_Init()
+	初始化导入机制。仅限内部使用。
+
+
+void PyImport_Cleanup()
+	清空模块表。仅限内部使用。
+
+
+void _PyImport_Fini()
+	完成导入机制。仅限内部使用。
+
+
+PyObject* _PyImport_FindExtension(char *, char *)
+	仅限内部使用。
+
+
+int PyImport_ImportFrozenModuleObject(PyObject *name)
+	加载名为 name 的冻结模块。返回 1 成功，0 如果没有找到模块，-1 如果初始化失败则设置异常。要在成功加载后访问导入的模块，请使用 PyImport_ImportModule()。 （注意misnomer —这个函数将重新加载模块，如果它已经导入。）
+	3.3 新版功能.
+	在 3.4 版更改: 模块上不再设置 __file__ 属性。
+
+
+int PyImport_ImportFrozenModule(const char *name)
+	与 PyImport_ImportFrozenModuleObject() 类似，但名称是UTF-8编码的字符串，而不是Unicode对象。
+
+	struct _frozen
+	这是由 freeze 实用程序（请参阅Python源代码分发中的 Tools/freeze/）生成的冻结模块描述符的结构类型定义。它的定义，在 Include/import.h 中找到，是:
+	struct _frozen {
+	    char *name;
+	    unsigned char *code;
+	    int size;
+	};
+	const struct _frozen* PyImport_FrozenModules
+	这个指针被初始化为指向一个 struct _frozen 记录数组，由成员都是 NULL 或零的终止。导入冻结模块时，将在此表中进行搜索。第三方代码可以用这个技巧提供动态创建的冻结模块集合。
+
+
+int PyImport_AppendInittab(const char *name, PyObject* (*initfunc)(void))
+	将单个模块添加到现有的内置模块表中。这是 PyImport_ExtendInittab() 周围的一个方便的包装，如果表不能被扩展则返回 -1。新模块可以通过名称 name 导入，并使用函数 initfunc 作为首次尝试导入时调用的初始化函数。这应该在 Py_Initialize() 之前调用。
+
+	struct _inittab
+	描述内置模块列表中单个条目的结构。这些结构中的每一个给出了内置到解释器中的模块的名称和初始化函数。名称是ASCII编码的字符串。嵌入Python的程序可以结合 PyImport_ExtendInittab() 使用这些结构的数组来提供附加的内置模块。结构在 Include/import.h 中定义为:
+	struct _inittab {
+	    char *name;                 /* ASCII encoded string */
+	    PyObject* (*initfunc)(void);
+	};
+
+
+int PyImport_ExtendInittab(struct _inittab *newtab)
+	将一组模块添加到内置模块表中。 newtab 数组必须以包含 name 字段的 NULL 的哨兵项结束；未能提供sentinel值可能导致内存故障。如果没有足够的内存分配来扩展内部表，则返回 0 成功或 -1。如果发生故障，则不会将模块添加到内部表。这应该在 Py_Initialize() 之前调用。
